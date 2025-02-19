@@ -9,12 +9,44 @@ import {
   ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from '@react-native-picker/picker';
+
+
 
 export default function HomeScreen({ navigation }) {
   console.log(navigation);
   const [notes, setNotes] = useState([]);
   const [filter, setFilter] = useState("all");
   const [searchText, setSearchText] = useState("");
+  const [period, setPeriod] = useState("all"); // État pour stocker la période sélectionnée
+
+
+  // Fonction pour filtrer les notes selon la période (jour, semaine, mois)
+  const filterByPeriod = (notes, period) => {
+    const now = new Date();
+    return notes.filter(note => {
+      const noteDate = new Date(note.date); // Assure-toi que la date dans les notes est dans un format valide
+
+      if (period === "day") {
+        // Filtrer les notes du jour
+        return noteDate.toDateString() === now.toDateString();
+      } else if (period === "week") {
+        // Filtrer les notes de la semaine
+        const startOfWeek = now.getDate() - now.getDay();
+        const endOfWeek = startOfWeek + 6;
+        const startOfWeekDate = new Date(now.setDate(startOfWeek));
+        const endOfWeekDate = new Date(now.setDate(endOfWeek));
+
+        return noteDate >= startOfWeekDate && noteDate <= endOfWeekDate;
+      } else if (period === "month") {
+        // Filtrer les notes du mois
+        return noteDate.getMonth() === now.getMonth() && noteDate.getFullYear() === now.getFullYear();
+      }
+
+      return true; // Par défaut, retourner toutes les notes
+    });
+  };
+
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
@@ -34,23 +66,26 @@ export default function HomeScreen({ navigation }) {
       console.error("Erreur chargement notes:", error);
     }
   };
+  
 
-  const filteredNotes = notes.filter((note) => {
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "completed" && note.completed) ||
-      (filter === "pending" && !note.completed) ||
-      (filter === "notes" && note.category === "note") ||
-      (filter === "tasks" && note.category === "tâche");
+  const filteredNotes = filterByPeriod(
+    notes.filter((note) => {
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "completed" && note.completed) ||
+        (filter === "pending" && !note.completed) ||
+        (filter === "notes" && note.category === "note") ||
+        (filter === "tasks" && note.category === "tâche");
 
-    const matchesSearch =
-      note.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      note.description.toLowerCase().includes(searchText.toLowerCase());
+      const matchesSearch =
+        note.title.toLowerCase().includes(searchText.toLowerCase()) ||
+        note.description.toLowerCase().includes(searchText.toLowerCase());
 
-    return matchesFilter && matchesSearch;
-    //return matchesSearch?matchesSearch:matchesFilter (Cela va renvoyer le meme resultat)
-    //return matchesFilter || matchesSearch; (Seulement l'une des deux condition doit etre rendu et l'autre sera à null)
-  });
+      return matchesFilter && matchesSearch;
+    }),
+    period // Applique le filtre de période (jour, semaine, mois) avec la valeur du picker
+  );
+  
 
   const FilterButton = ({ title, value }) => (
     <TouchableOpacity
@@ -112,6 +147,19 @@ export default function HomeScreen({ navigation }) {
         value={searchText}
         onChangeText={setSearchText}
       />
+
+  <Picker
+    selectedValue={period}
+    onValueChange={(itemValue) => setPeriod(itemValue)}
+    style={styles.pickerContainer}
+  >
+
+    <Picker.Item label="Aujourd'hui" value="today" />
+    <Picker.Item label="Cette semaine" value="week" />
+    <Picker.Item label="Ce mois" value="month" />
+    <Picker.Item label="Toutes les notes" value="all" />
+  </Picker>
+
 
       <ScrollView
         horizontal
@@ -237,4 +285,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  pickerContainer: {
+    height: 50,
+    width: "100%",
+    backgroundColor: "#fff",
+    marginBottom: 10,
+  },
+  
 });
