@@ -186,6 +186,14 @@ export default function HomeScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         style={styles.list}
       />
+      
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate("MapLocation")}
+      >
+        <Text style={styles.addButtonText}>Voir ma localisation</Text>
+      </TouchableOpacity>
+
     </View>
   );
 }
